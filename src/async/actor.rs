@@ -1,5 +1,5 @@
 use tokio::sync::mpsc;
-use crate::handler::Handler;
+use super::handler::Handler;
 
 pub(crate) struct Actor<T, U: Handler<T>> {
     receiver: mpsc::UnboundedReceiver<T>,
@@ -10,16 +10,17 @@ impl <T, U: Handler<T>> Actor<T, U> {
     pub(crate) fn new(rx: mpsc::UnboundedReceiver<T>, handler: U) -> Self {
         Self {
             receiver: rx,
-            handler
+            handler,
         }
     }
 
     pub(crate) async fn run(&mut self) {
         while let Some(msg) = self.receiver.recv().await {
-            if let Err(e) = self.handler.handle_message(msg) {
+            if let Err(e) = self.handler.handle_message(msg).await {
                 self.receiver.close();
-                self.handler.on_error(e);
-            };
+                self.handler.on_error(e).await;
+                return;
+            }
         }
     }
 }
