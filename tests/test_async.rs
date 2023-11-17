@@ -1,6 +1,5 @@
-use actor_lite::{r#async::handler::Handler, handle::ActorHandle};
+use actor_lite::{r#async::handler::Handler, handle::ActorHandle, error::Error};
 use tokio::sync::oneshot;
-use actor_lite::error_handling::{Error, Result};
 use anyhow::anyhow;
 
 #[tokio::test]
@@ -93,14 +92,14 @@ impl TestHandler {
 
 #[async_trait::async_trait]
 impl Handler<TestMessage> for TestHandler {
-    async fn handle_message(&mut self, message: TestMessage) -> Result<()> {
+    async fn handle_message(&mut self, message: TestMessage) -> Result<(), Error> {
         let _ = match message {
             TestMessage::Increment => self.handle_increment().await,
             TestMessage::GetCount(tx) => tx.send(self.handle_get_count().await).map_err(|e| {
                 anyhow!("error sending count value {e:#?}")
             })?,
             TestMessage::TestAsync(tx, rx) => self.on_test_async(tx, rx).await,
-            TestMessage::TestError => return Err(anyhow!("intentional error caused"))
+            TestMessage::TestError => return Err(anyhow!("intentional error caused").into())
         };
         Ok(())
     }

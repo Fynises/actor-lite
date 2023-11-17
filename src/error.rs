@@ -1,5 +1,7 @@
 use tokio::{sync::mpsc::error::SendError, task::JoinError};
 
+pub type Error = Box<(dyn std::error::Error + Send + Sync + 'static)>;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ActorHandleError {
     #[error("error occurred shutting down actor")]

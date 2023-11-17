@@ -1,5 +1,5 @@
+use actor_lite::error::Error;
 use actor_lite::{sync::handler::Handler, handle::ActorHandle};
-use actor_lite::error_handling::{Result, Error};
 use tokio::sync::oneshot;
 use anyhow::anyhow;
 
@@ -66,18 +66,18 @@ impl TestHandler {
         self.count += 1;
     }
     
-    fn on_get_count(&self, tx: oneshot::Sender<usize>) -> Result<()> {
+    fn on_get_count(&self, tx: oneshot::Sender<usize>) -> Result<(), Error> {
         let _ = tx.send(self.count).map_err(|e| anyhow!("error sending number {}", e));
         Ok(())
     }
 }
 
 impl Handler<TestMessage> for TestHandler {
-    fn handle_message(&mut self, message: TestMessage) -> Result<()> {
+    fn handle_message(&mut self, message: TestMessage) -> Result<(), Error> {
         let _ = match message {
             TestMessage::Increment => self.on_increment(),
             TestMessage::GetCount(tx) => self.on_get_count(tx)?,
-            TestMessage::Error => return Err(anyhow!("test error")),
+            TestMessage::Error => return Err(anyhow!("test error").into()),
         };
         Ok(())
     }
