@@ -8,7 +8,7 @@ async fn test() {
     println!("starting tests");
 
     let (handler, err_rx) = TestHandler::new();
-    let actor_handle = ActorHandle::new(handler);
+    let actor_handle = ActorHandle::new(|_tx| handler);
 
     { // test getting value
         let (tx, rx) = oneshot::channel::<usize>();
@@ -35,7 +35,7 @@ async fn test() {
 #[tokio::test]
 async fn test_shutdown() {
     let (handler, _error_tx) = TestHandler::new();
-    let actor_handle = ActorHandle::new(handler);
+    let actor_handle = ActorHandle::new(|_tx| handler);
     let is_shutdown_error = actor_handle.shutdown().await.is_err();
     assert_eq!(false, is_shutdown_error)
 }

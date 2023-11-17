@@ -6,7 +6,7 @@ use anyhow::anyhow;
 #[tokio::test]
 async fn test() {
     let (handler, error_rx) = TestHandler::new();
-    let actor_handle = ActorHandle::new_async(handler);
+    let actor_handle = ActorHandle::new_async(|_tx| handler);
 
     {
         let (tx, rx) = oneshot::channel::<usize>();
@@ -44,7 +44,7 @@ async fn test() {
 #[tokio::test]
 async fn test_shutdown() {
     let (handler, _error_tx) = TestHandler::new();
-    let actor_handle = ActorHandle::new_async(handler);
+    let actor_handle = ActorHandle::new_async(|_tx| handler);
     let is_shutdown_error = actor_handle.shutdown().await.is_err();
     assert_eq!(false, is_shutdown_error);
 }

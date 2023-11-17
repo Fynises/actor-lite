@@ -1,4 +1,4 @@
-use tokio::{sync::mpsc, task::{JoinHandle, JoinError}};
+use tokio::{sync::mpsc::{self, UnboundedSender}, task::{JoinHandle, JoinError}};
 use crate::sync::{actor::Actor as SyncActor, handler::Handler as SyncHandler};
 use crate::r#async::{actor::Actor as AsyncActor, handler::Handler as AsyncHandler};
 use crate::error::{ActorHandleSendError, ShutdownError};
@@ -11,12 +11,15 @@ pub struct ActorHandle<T: Send> {
 
 impl <T: Send> ActorHandle<T> {
     /// constructs a new actor handle using a synchronous handler
-    pub fn new<U: SyncHandler<T>>(message_handler: U) -> Self
+    pub fn new<U: SyncHandler<T>>(
+        func: impl FnOnce(&UnboundedSender<T>) -> U,
+    ) -> Self
         where
         T: Send + 'static,
-        U: SyncHandler<T> + Send + 'static {
+        U: SyncHandler<T> + Send + 'static
+    {
         let (tx, rx) = mpsc::unbounded_channel::<T>();
-        let mut actor = SyncActor::new(rx, message_handler);
+        let mut actor = SyncActor::new(rx, func(&tx));
         let join_handle = tokio::spawn(async move { actor.run().await; });
         Self {
             sender: Some(tx),
@@ -25,12 +28,15 @@ impl <T: Send> ActorHandle<T> {
     }
 
     /// constructs a new actor handle using an asynchronous handler
-    pub fn new_async<U: AsyncHandler<T>>(message_handler: U) -> Self
+    pub fn new_async<U: AsyncHandler<T>>(
+        func: impl FnOnce(&UnboundedSender<T>) -> U,
+    ) -> Self
         where
         T: Send + 'static,
-        U: AsyncHandler<T> + Send + 'static {
+        U: AsyncHandler<T> + Send + 'static
+    {
         let (tx, rx) = mpsc::unbounded_channel::<T>();
-        let mut actor = AsyncActor::new(rx, message_handler);
+        let mut actor = AsyncActor::new(rx, func(&tx));
         let join_handle = tokio::spawn(async move { actor.run().await; });
         Self {
             sender: Some(tx),
