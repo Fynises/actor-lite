@@ -4,19 +4,19 @@ use crate::r#async::{actor::Actor as AsyncActor, handler::Handler as AsyncHandle
 use crate::error::{ActorHandleSendError, ShutdownError};
 
 
-pub struct ActorHandle<T: Send> {
+pub struct ActorHandle<T: Send + Sync> {
     sender: Option<mpsc::UnboundedSender<T>>,
     join_handle: JoinHandle<()>,
 }
 
-impl <T: Send> ActorHandle<T> {
+impl <T: Send + Sync> ActorHandle<T> {
     /// constructs a new actor handle using a synchronous handler
     pub fn new<U: SyncHandler<T>>(
         func: impl FnOnce(&UnboundedSender<T>) -> U,
     ) -> Self
         where
-        T: Send + 'static,
-        U: SyncHandler<T> + Send + 'static
+        T: Send + Sync + 'static,
+        U: SyncHandler<T> + Send + Sync + 'static
     {
         let (tx, rx) = mpsc::unbounded_channel::<T>();
         let mut actor = SyncActor::new(rx, func(&tx));
@@ -32,8 +32,8 @@ impl <T: Send> ActorHandle<T> {
         func: impl FnOnce(&UnboundedSender<T>) -> U,
     ) -> Self
         where
-        T: Send + 'static,
-        U: AsyncHandler<T> + Send + 'static
+        T: Send + Sync + 'static,
+        U: AsyncHandler<T> + Send + Sync + 'static
     {
         let (tx, rx) = mpsc::unbounded_channel::<T>();
         let mut actor = AsyncActor::new(rx, func(&tx));
